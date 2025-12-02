@@ -1,0 +1,89 @@
+:root {
+  /* --- CẤU HÌNH KÍCH THƯỚC --- */
+  --dot-dia: 16px;       /* Đường kính chấm tròn */
+  --box-size: 60px;      /* Kích thước ô vuông (khoảng cách giữa các chấm) */
+  --line-thick: 8px;    /* Độ dày hiển thị của đường kẻ */
+
+  /* --- MÀU SẮC --- */
+  --color-bg: #f4f4f4;
+  --color-dot: #333;
+  --color-line-idle: #e6e6e6; /* Màu đường kẻ khi chưa chọn */
+  --color-line-hover: #d4d4d4; /* Màu khi di chuột vào */
+  --color-line-taken: #333;    /* Màu đường kẻ đã chọn */
+  --player1: #ff7b7b;
+  --player2: #7bbaff;
+}
+
+body { font-family: Arial, Helvetica, sans-serif; background: var(--color-bg); margin: 20px; }
+.container { max-width: 900px; margin: 0 auto; background: #fff; padding: 18px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+.controls { margin-bottom: 10px; }
+.controls label { margin-right: 10px; }
+#boardWrap { margin-top: 12px; display: flex; justify-content: center; align-items: center; }
+
+/* --- CẤU TRÚC BÀN CỜ --- */
+.board {
+  display: grid;
+  /* Các phần tử bên trong sẽ tự căn giữa ô grid của nó */
+  justify-items: center;
+  align-items: center;
+  padding: 20px;
+  background: #fff;
+  border: 1px solid #ddd;
+  /* Lưu ý: grid-template-columns/rows sẽ được tạo bằng JS */
+}
+
+/* --- CHẤM TRÒN (DOT) --- */
+.dot {
+  width: var(--dot-dia);
+  height: var(--dot-dia);
+  background: var(--color-dot);
+  border-radius: 50%;
+  z-index: 2; /* Đảm bảo chấm nằm đè lên đầu đường kẻ */
+}
+
+/* --- ĐƯỜNG KẺ (LINE) - CHUNG --- */
+.h-line, .v-line {
+  /* Container chiếm trọn ô grid để dễ click */
+  width: 100%;
+  height: 100%;
+  background: var(--color-line-idle);
+  cursor: pointer;
+  transition: background 0.2s;
+  /* Dùng flex để căn giữa đường kẻ visual bên trong vùng click */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* Hiệu ứng khi di chuột và khi đã chọn */
+.h-line:not(.taken):hover, .v-line:not(.taken):hover { background: var(--color-line-hover); }
+.h-line.taken, .v-line.taken { background: var(--color-line-taken); cursor: default; }
+
+/* --- ĐƯỜNG KẺ NGANG (Visual) --- */
+/* Sử dụng pseudo-element ::after để vẽ đường kẻ mỏng bên trong vùng click lớn */
+.h-line::after {
+    content: ''; display: block;
+    width: 100%; height: var(--line-thick); /* Chiều ngang full, chiều cao mỏng */
+    background: inherit; border-radius: 4px;
+}
+
+/* --- ĐƯỜNG KẺ DỌC (Visual) --- */
+.v-line::after {
+    content: ''; display: block;
+    height: 100%; width: var(--line-thick); /* Chiều cao full, chiều ngang mỏng */
+    background: inherit; border-radius: 4px;
+}
+
+/* --- Ô GHI ĐIỂM (BOX) --- */
+.box {
+  width: 100%; height: 100%;
+  transition: background 0.3s;
+  border-radius: 4px;
+}
+.player1 { background: var(--player1); }
+.player2 { background: var(--player2); }
+
+/* --- CÁC PHẦN KHÁC --- */
+.hidden { display: none; }
+.status { display: flex; gap: 12px; align-items: center; font-weight: bold; }
+#result { margin-top: 12px; font-weight: bold; padding: 10px; background: #eee; text-align: center; border-radius: 4px;}
