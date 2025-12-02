@@ -4,14 +4,28 @@ const turnDiv = document.getElementById('turn');
 const scoreDiv = document.getElementById('score');
 const resultDiv = document.getElementById('result');
 
-let rows = 3, cols = 3;
+let rows = 3, cols = 3; // Biến này lưu số lượng DOTS (Điểm)
 let hLines = [], vLines = [], boxes = [];
 let score = [0,0];
 let current = 0; // 0: player1, 1:player2
 
 startBtn.addEventListener('click', () => {
-  rows = Math.max(2, parseInt(document.getElementById('rows').value,10) || 3);
-  cols = Math.max(2, parseInt(document.getElementById('cols').value,10) || 3);
+  // Lấy giá trị input (Đây là số Ô)
+  let inputRows = parseInt(document.getElementById('rows').value, 10) || 3;
+  let inputCols = parseInt(document.getElementById('cols').value, 10) || 3;
+
+  // Giới hạn: Tối thiểu 1 ô, Tối đa 11 ô
+  inputRows = Math.min(11, Math.max(1, inputRows));
+  inputCols = Math.min(11, Math.max(1, inputCols));
+  
+  // Cập nhật lại giá trị hiển thị trên ô input nếu người dùng nhập quá lố
+  document.getElementById('rows').value = inputRows;
+  document.getElementById('cols').value = inputCols;
+
+  // QUAN TRỌNG: Số DOTS = Số Ô + 1
+  rows = inputRows + 1;
+  cols = inputCols + 1;
+
   initGame();
 });
 
@@ -24,35 +38,29 @@ function initGame(){
 }
 
 function updateStatus(){
+  // Cập nhật text trạng thái đúng với màu X đỏ / O xanh
   turnDiv.textContent = `Lượt: ${current===0 ? 'Người 1 (X)' : 'Người 2 (O)'}`;
   scoreDiv.textContent = `Điểm — Người 1: ${score[0]} | Người 2: ${score[1]}`;
 }
 
-// --- HÀM QUAN TRỌNG ĐÃ ĐƯỢC SỬA ---
 function buildBoard(r, c){
   boardWrap.innerHTML = '';
   const grid = document.createElement('div');
   grid.className = 'board';
 
-  // SỬA ĐỔI Ở ĐÂY: Tạo Grid Template xen kẽ kích thước
-  // Chúng ta dùng biến CSS đã định nghĩa: var(--dot-dia) và var(--box-size)
-
-  // 1. Tạo template cho CỘT (Columns)
+  // Template columns
   let colTemplate = [];
   for(let j=0; j < 2*c - 1; j++) {
-      // Nếu j chẵn -> cột chứa chấm (nhỏ). Nếu j lẻ -> cột chứa đường ngang/hộp (to)
       colTemplate.push(j % 2 === 0 ? 'var(--dot-dia)' : 'var(--box-size)');
   }
   grid.style.gridTemplateColumns = colTemplate.join(' ');
 
-  // 2. Tạo template cho HÀNG (Rows) - Bổ sung thêm phần này
+  // Template rows
   let rowTemplate = [];
   for(let i=0; i < 2*r - 1; i++) {
-      // Nếu i chẵn -> hàng chứa chấm (nhỏ). Nếu i lẻ -> hàng chứa đường dọc/hộp (to)
       rowTemplate.push(i % 2 === 0 ? 'var(--dot-dia)' : 'var(--box-size)');
   }
   grid.style.gridTemplateRows = rowTemplate.join(' ');
-
 
   // reset data
   hLines = Array.from({length: r}, () => Array(c-1).fill(false));
@@ -66,7 +74,7 @@ function buildBoard(r, c){
         // dot
         cell.className = 'dot';
       } else if(i%2===0 && j%2===1){
-        // horizontal line
+        // h-line
         const hi = i/2;
         const hj = (j-1)/2;
         cell.className = 'h-line';
@@ -74,7 +82,7 @@ function buildBoard(r, c){
         cell.dataset.c = hj;
         cell.addEventListener('click', onHLineClick);
       } else if(i%2===1 && j%2===0){
-        // vertical line
+        // v-line
         const vi = (i-1)/2;
         const vj = j/2;
         cell.className = 'v-line';
@@ -94,7 +102,6 @@ function buildBoard(r, c){
   updateVisuals();
 }
 
-// ... (Các hàm phía dưới: onHLineClick, onVLineClick, checkBox, handleMove, paintBoxes, updateVisuals, checkEnd giữ nguyên không đổi) ...
 function onHLineClick(e){
   const r = parseInt(e.currentTarget.dataset.r,10);
   const c = parseInt(e.currentTarget.dataset.c,10);
@@ -154,9 +161,10 @@ function paintBoxes(){
     const r = parseInt(el.dataset.r,10);
     const c = parseInt(el.dataset.c,10);
     const val = boxes[r] && boxes[r][c];
+    // Reset class để tránh bị trùng
     el.classList.remove('player1','player2');
-    if(val === 0) el.classList.add('player1');
-    else if(val === 1) el.classList.add('player2');
+    if(val === 0) el.classList.add('player1'); // Sẽ hiện X đỏ
+    else if(val === 1) el.classList.add('player2'); // Sẽ hiện O xanh
   });
 }
 
@@ -174,6 +182,7 @@ function updateVisuals(){
 }
 
 function checkEnd(){
+  // Tính tổng số ô dựa trên input boxes (rows-1 vì rows giờ là dots)
   const totalBoxes = (rows-1)*(cols-1);
   const claimed = score[0] + score[1];
   if(claimed === totalBoxes){
@@ -184,4 +193,6 @@ function checkEnd(){
   }
 }
 
-initGame();
+// Chạy lần đầu
+// Giả lập click start để lấy đúng giá trị 3x3 mặc định
+startBtn.click();
