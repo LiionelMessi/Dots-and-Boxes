@@ -1,46 +1,65 @@
 const startBtn = document.getElementById('startBtn');
+const restartBtn = document.getElementById('restartBtn');
 const boardWrap = document.getElementById('boardWrap');
-const turnDiv = document.getElementById('turn');
-const scoreDiv = document.getElementById('score');
+const score1El = document.getElementById('score1');
+const score2El = document.getElementById('score2');
+const p1Card = document.getElementById('p1-card');
+const p2Card = document.getElementById('p2-card');
+const p2Name = document.getElementById('p2-name');
 const resultDiv = document.getElementById('result');
+const resultText = document.getElementById('resultText');
+const gameModeSel = document.getElementById('gameMode');
 
-let rows = 3, cols = 3; // Biến này lưu số lượng DOTS (Điểm)
+// Cấu hình game
+let rows = 3, cols = 3; 
 let hLines = [], vLines = [], boxes = [];
 let score = [0,0];
-let current = 0; // 0: player1, 1:player2
+let current = 0; // 0: Player, 1: Player2/AI
+let isVsAI = false;
+let isGameActive = false;
 
-startBtn.addEventListener('click', () => {
-  // Lấy giá trị input (Đây là số Ô)
+startBtn.addEventListener('click', startGame);
+restartBtn.addEventListener('click', startGame);
+
+function startGame() {
+  // Lấy dữ liệu input
   let inputRows = parseInt(document.getElementById('rows').value, 10) || 3;
   let inputCols = parseInt(document.getElementById('cols').value, 10) || 3;
-
-  // Giới hạn: Tối thiểu 1 ô, Tối đa 11 ô
+  
+  // Giới hạn
   inputRows = Math.min(11, Math.max(1, inputRows));
   inputCols = Math.min(11, Math.max(1, inputCols));
   
-  // Cập nhật lại giá trị hiển thị trên ô input nếu người dùng nhập quá lố
   document.getElementById('rows').value = inputRows;
   document.getElementById('cols').value = inputCols;
 
-  // QUAN TRỌNG: Số DOTS = Số Ô + 1
-  rows = inputRows + 1;
-  cols = inputCols + 1;
+  rows = inputRows + 1; // dots
+  cols = inputCols + 1; // dots
 
-  initGame();
-});
+  // Chế độ chơi
+  isVsAI = gameModeSel.value === 'pvc';
+  p2Name.textContent = isVsAI ? "Máy (O)" : "Người 2 (O)";
 
-function initGame(){
+  // Reset biến
   score = [0,0];
   current = 0;
-  updateStatus();
+  isGameActive = true;
+  hLines = Array.from({length: rows}, () => Array(cols-1).fill(false));
+  vLines = Array.from({length: rows-1}, () => Array(cols).fill(false));
+  boxes = Array.from({length: rows-1}, () => Array(cols-1).fill(null));
+
+  updateUI();
   buildBoard(rows, cols);
   resultDiv.classList.add('hidden');
 }
 
-function updateStatus(){
-  // Cập nhật text trạng thái đúng với màu X đỏ / O xanh
-  turnDiv.textContent = `Lượt: ${current===0 ? 'Người 1 (X)' : 'Người 2 (O)'}`;
-  scoreDiv.textContent = `Điểm — Người 1: ${score[0]} | Người 2: ${score[1]}`;
+function updateUI(){
+  score1El.textContent = score[0];
+  score2El.textContent = score[1];
+  
+  // Highlight lượt chơi
+  p1Card.classList.toggle('active', current === 0);
+  p2Card.classList.toggle('active', current === 1);
 }
 
 function buildBoard(r, c){
@@ -48,50 +67,42 @@ function buildBoard(r, c){
   const grid = document.createElement('div');
   grid.className = 'board';
 
-  // Template columns
+  // Grid Templates
   let colTemplate = [];
-  for(let j=0; j < 2*c - 1; j++) {
-      colTemplate.push(j % 2 === 0 ? 'var(--dot-dia)' : 'var(--box-size)');
-  }
+  for(let j=0; j < 2*c - 1; j++) colTemplate.push(j%2===0 ? 'var(--dot-dia)' : 'var(--box-size)');
   grid.style.gridTemplateColumns = colTemplate.join(' ');
 
-  // Template rows
   let rowTemplate = [];
-  for(let i=0; i < 2*r - 1; i++) {
-      rowTemplate.push(i % 2 === 0 ? 'var(--dot-dia)' : 'var(--box-size)');
-  }
+  for(let i=0; i < 2*r - 1; i++) rowTemplate.push(i%2===0 ? 'var(--dot-dia)' : 'var(--box-size)');
   grid.style.gridTemplateRows = rowTemplate.join(' ');
 
-  // reset data
-  hLines = Array.from({length: r}, () => Array(c-1).fill(false));
-  vLines = Array.from({length: r-1}, () => Array(c).fill(false));
-  boxes = Array.from({length: r-1}, () => Array(c-1).fill(null));
-
+  // Generate Cells
   for(let i=0;i<2*r-1;i++){
     for(let j=0;j<2*c-1;j++){
       const cell = document.createElement('div');
-      if(i%2===0 && j%2===0){
-        // dot
+      
+      if(i%2===0 && j%2===0) {
         cell.className = 'dot';
-      } else if(i%2===0 && j%2===1){
-        // h-line
-        const hi = i/2;
-        const hj = (j-1)/2;
+      } else if(i%2===0 && j%2===1) {
+        // H-Line
+        const hi = i/2, hj = (j-1)/2;
         cell.className = 'h-line';
-        cell.dataset.r = hi;
-        cell.dataset.c = hj;
-        cell.addEventListener('click', onHLineClick);
-      } else if(i%2===1 && j%2===0){
-        // v-line
-        const vi = (i-1)/2;
-        const vj = j/2;
+        cell.id = `h-${hi}-${hj}`;
+        cell.dataset.type = 'h';
+        cell.dataset.r = hi; cell.dataset.c = hj;
+        cell.addEventListener('click', onLineClick);
+      } else if(i%2===1 && j%2===0) {
+        // V-Line
+        const vi = (i-1)/2, vj = j/2;
         cell.className = 'v-line';
-        cell.dataset.r = vi;
-        cell.dataset.c = vj;
-        cell.addEventListener('click', onVLineClick);
+        cell.id = `v-${vi}-${vj}`;
+        cell.dataset.type = 'v';
+        cell.dataset.r = vi; cell.dataset.c = vj;
+        cell.addEventListener('click', onLineClick);
       } else {
-        // box
+        // Box
         cell.className = 'box';
+        cell.id = `b-${(i-1)/2}-${(j-1)/2}`;
         cell.dataset.r = (i-1)/2;
         cell.dataset.c = (j-1)/2;
       }
@@ -99,100 +110,152 @@ function buildBoard(r, c){
     }
   }
   boardWrap.appendChild(grid);
-  updateVisuals();
 }
 
-function onHLineClick(e){
-  const r = parseInt(e.currentTarget.dataset.r,10);
-  const c = parseInt(e.currentTarget.dataset.c,10);
-  if(hLines[r][c]) return;
-  hLines[r][c] = true;
-  e.currentTarget.classList.add('taken');
-  handleMove(() => {
-    let scored = 0;
-    if(r>0 && checkBox(r-1,c)){ boxes[r-1][c] = current; scored++; }
-    if(r < hLines.length-1 && checkBox(r,c)){ boxes[r][c] = current; scored++; }
-    return scored;
-  });
+function onLineClick(e){
+  if(!isGameActive) return;
+  // Nếu đang là lượt máy thì người không được click
+  if(isVsAI && current === 1) return;
+
+  const type = e.currentTarget.dataset.type;
+  const r = parseInt(e.currentTarget.dataset.r);
+  const c = parseInt(e.currentTarget.dataset.c);
+
+  processMove(type, r, c);
 }
 
-function onVLineClick(e){
-  const r = parseInt(e.currentTarget.dataset.r,10);
-  const c = parseInt(e.currentTarget.dataset.c,10);
-  if(vLines[r][c]) return;
-  vLines[r][c] = true;
-  e.currentTarget.classList.add('taken');
-  handleMove(() => {
-    let scored = 0;
-    if(c>0 && checkBox(r,c-1)){ boxes[r][c-1] = current; scored++; }
-    if(c < vLines[0].length-1 && checkBox(r,c)){ boxes[r][c] = current; scored++; }
-    return scored;
-  });
-}
-
-function checkBox(br, bc){
-  if(br<0 || bc<0) return false;
-  if(br >= hLines.length-1) return false;
-  if(bc >= hLines[0].length) return false;
-  const top = hLines[br][bc];
-  const bottom = hLines[br+1][bc];
-  const left = vLines[br][bc];
-  const right = vLines[br][bc+1];
-  return top && bottom && left && right;
-}
-
-function handleMove(scoreCheckFn){
-  const gained = scoreCheckFn();
-  if(gained>0){
-    score[current] += gained;
-    paintBoxes();
-    updateStatus();
-  } else {
-    current = 1 - current;
-    updateStatus();
+function processMove(type, r, c) {
+  let valid = false;
+  if(type === 'h' && !hLines[r][c]) {
+    hLines[r][c] = true;
+    valid = true;
+    document.getElementById(`h-${r}-${c}`).classList.add('taken');
+  } else if(type === 'v' && !vLines[r][c]) {
+    vLines[r][c] = true;
+    valid = true;
+    document.getElementById(`v-${r}-${c}`).classList.add('taken');
   }
-  paintBoxes();
-  checkEnd();
+
+  if(!valid) return; // Đã click rồi thì thôi
+
+  // Kiểm tra điểm
+  let scored = 0;
+  if(type === 'h') {
+    if(r>0 && checkBox(r-1,c)) { boxes[r-1][c] = current; scored++; }
+    if(r < rows-1 && checkBox(r,c)) { boxes[r][c] = current; scored++; }
+  } else {
+    if(c>0 && checkBox(r,c-1)) { boxes[r][c-1] = current; scored++; }
+    if(c < cols-1 && checkBox(r,c)) { boxes[r][c] = current; scored++; }
+  }
+
+  if(scored > 0) {
+    score[current] += scored;
+    updateBoxVisuals();
+    updateUI();
+    checkEnd();
+    // Nếu ăn điểm, giữ nguyên lượt.
+    // Nếu là máy ăn điểm -> máy đi tiếp (gọi lại AI)
+    if(isVsAI && current === 1 && isGameActive) {
+       setTimeout(computerMove, 600);
+    }
+  } else {
+    // Đổi lượt
+    current = 1 - current;
+    updateUI();
+    
+    // Nếu chế độ AI và đến lượt Máy
+    if(isVsAI && current === 1 && isGameActive) {
+      setTimeout(computerMove, 500);
+    }
+  }
 }
 
-function paintBoxes(){
-  const boxesEls = document.querySelectorAll('.box');
-  boxesEls.forEach(el => {
-    const r = parseInt(el.dataset.r,10);
-    const c = parseInt(el.dataset.c,10);
-    const val = boxes[r] && boxes[r][c];
-    // Reset class để tránh bị trùng
-    el.classList.remove('player1','player2');
-    if(val === 0) el.classList.add('player1'); // Sẽ hiện X đỏ
-    else if(val === 1) el.classList.add('player2'); // Sẽ hiện O xanh
-  });
+function checkBox(r, c){
+  if(r<0 || c<0 || r>=rows-1 || c>=cols-1) return false;
+  return hLines[r][c] && hLines[r+1][c] && vLines[r][c] && vLines[r][c+1];
 }
 
-function updateVisuals(){
-  document.querySelectorAll('.h-line').forEach(el => {
-    const r = parseInt(el.dataset.r,10), c = parseInt(el.dataset.c,10);
-    if(hLines[r][c]) el.classList.add('taken');
-  });
-  document.querySelectorAll('.v-line').forEach(el => {
-    const r = parseInt(el.dataset.r,10), c = parseInt(el.dataset.c,10);
-    if(vLines[r][c]) el.classList.add('taken');
-  });
-  paintBoxes();
-  updateStatus();
+function updateBoxVisuals(){
+  for(let i=0; i<rows-1; i++){
+    for(let j=0; j<cols-1; j++){
+      const val = boxes[i][j];
+      const el = document.getElementById(`b-${i}-${j}`);
+      if(val === 0) el.classList.add('player1');
+      if(val === 1) el.classList.add('player2');
+    }
+  }
 }
 
 function checkEnd(){
-  // Tính tổng số ô dựa trên input boxes (rows-1 vì rows giờ là dots)
-  const totalBoxes = (rows-1)*(cols-1);
-  const claimed = score[0] + score[1];
-  if(claimed === totalBoxes){
+  if(score[0] + score[1] === (rows-1)*(cols-1)) {
+    isGameActive = false;
     resultDiv.classList.remove('hidden');
-    if(score[0] > score[1]) resultDiv.textContent = `Kết thúc — Người 1 thắng ${score[0]} : ${score[1]}`;
-    else if(score[1] > score[0]) resultDiv.textContent = `Kết thúc — Người 2 thắng ${score[1]} : ${score[0]}`;
-    else resultDiv.textContent = `Hòa ${score[0]} : ${score[1]}`;
+    if(score[0] > score[1]) resultText.textContent = "NGƯỜI 1 CHIẾN THẮNG!";
+    else if(score[1] > score[0]) resultText.textContent = isVsAI ? "MÁY ĐÃ THẮNG!" : "NGƯỜI 2 CHIẾN THẮNG!";
+    else resultText.textContent = "HÒA NHAU!";
   }
 }
 
-// Chạy lần đầu
-// Giả lập click start để lấy đúng giá trị 3x3 mặc định
-startBtn.click();
+// --- LOGIC AI (BOT) ---
+function computerMove() {
+  if(!isGameActive) return;
+
+  // 1. Tìm nước đi ăn điểm ngay (Greedy)
+  // Duyệt qua tất cả các ô, xem ô nào đã có 3 cạnh -> đi cạnh thứ 4
+  let move = findClosingMove();
+  
+  // 2. Nếu không có nước ăn điểm, chọn ngẫu nhiên
+  if(!move) {
+    move = pickRandomMove();
+  }
+
+  if(move) {
+    processMove(move.type, move.r, move.c);
+  }
+}
+
+function findClosingMove() {
+  // Kiểm tra từng ô
+  for(let r=0; r<rows-1; r++){
+    for(let c=0; c<cols-1; c++){
+      // Đếm số cạnh đã tô của ô này
+      const top = hLines[r][c] ? 1 : 0;
+      const bot = hLines[r+1][c] ? 1 : 0;
+      const left = vLines[r][c] ? 1 : 0;
+      const right = vLines[r][c+1] ? 1 : 0;
+      
+      if(top + bot + left + right === 3) {
+        // Tìm cạnh còn thiếu
+        if(!top) return {type:'h', r:r, c:c};
+        if(!bot) return {type:'h', r:r+1, c:c};
+        if(!left) return {type:'v', r:r, c:c};
+        if(!right) return {type:'v', r:r, c:c+1};
+      }
+    }
+  }
+  return null;
+}
+
+function pickRandomMove() {
+  let available = [];
+  // Gom tất cả cạnh ngang chưa đi
+  for(let r=0; r<rows; r++){
+    for(let c=0; c<cols-1; c++){
+      if(!hLines[r][c]) available.push({type:'h', r:r, c:c});
+    }
+  }
+  // Gom tất cả cạnh dọc chưa đi
+  for(let r=0; r<rows-1; r++){
+    for(let c=0; c<cols; c++){
+      if(!vLines[r][c]) available.push({type:'v', r:r, c:c});
+    }
+  }
+  
+  if(available.length === 0) return null;
+  // Chọn random
+  const idx = Math.floor(Math.random() * available.length);
+  return available[idx];
+}
+
+// Start game mặc định
+startGame();

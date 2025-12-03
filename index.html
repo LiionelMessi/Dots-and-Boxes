@@ -3,28 +3,58 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Dots and Boxes</title>
+  <title>Dots & Boxes Pro</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
   <div class="container">
-    <h1>Dots and Boxes</h1>
+    <h1 class="title">DOTS & BOXES</h1>
 
-    <div class="controls">
-      <label>Số hàng (ô): <input id="rows" type="number" min="1" max="11" value="3"></label>
-      <label>Số cột (ô): <input id="cols" type="number" min="1" max="11" value="3"></label>
-      <button id="startBtn">Bắt đầu</button>
+    <div class="controls-card">
+      <div class="input-group">
+        <label>Chế độ:</label>
+        <select id="gameMode">
+          <option value="pvp">Người vs Người</option>
+          <option value="pvc">Người vs Máy (AI)</option>
+        </select>
+      </div>
+      
+      <div class="row-inputs">
+        <div class="input-group">
+          <label>Hàng (Ô):</label>
+          <input id="rows" type="number" min="1" max="11" value="3">
+        </div>
+        <div class="input-group">
+          <label>Cột (Ô):</label>
+          <input id="cols" type="number" min="1" max="11" value="3">
+        </div>
+      </div>
+      
+      <button id="startBtn" class="btn-start">BẮT ĐẦU GAME</button>
     </div>
 
-    <div class="status">
-      <div id="turn">Lượt: Người 1 (X)</div>
-      <div id="score">Điểm — Người 1: 0 | Người 2: 0</div>
+    <div class="game-info">
+      <div class="player-card p1 active" id="p1-card">
+        <span class="name">Người 1 (X)</span>
+        <span class="score" id="score1">0</span>
+      </div>
+      <div class="vs">VS</div>
+      <div class="player-card p2" id="p2-card">
+        <span class="name" id="p2-name">Người 2 (O)</span>
+        <span class="score" id="score2">0</span>
+      </div>
     </div>
 
     <div id="boardWrap">
       </div>
 
-    <div id="result" class="hidden"></div>
+    <div id="result" class="result-modal hidden">
+      <div class="result-content">
+        <h2 id="resultText"></h2>
+        <button id="restartBtn">Chơi lại</button>
+      </div>
+    </div>
   </div>
 
   <script src="script.js"></script>
